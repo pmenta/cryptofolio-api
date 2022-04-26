@@ -2,8 +2,14 @@ CREATE DATABASE cryptofolio;
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+CREATE TABLE IF NOT EXISTS tokens (
+  id VARCHAR NOT NULL UNIQUE,
+  name VARCHAR NOT NULL UNIQUE
+);
+
 CREATE TABLE IF NOT EXISTS assets (
   id UUID NOT NULL UNIQUE DEFAULT uuid_generate_v4(),
-  crypto VARCHAR NOT NULL,
-  amount NUMERIC NOT NULL
+  amount NUMERIC NOT NULL,
+  token_id VARCHAR,
+  FOREIGN KEY(token_id) REFERENCES tokens(id)
 );

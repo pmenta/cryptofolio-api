@@ -1,26 +1,36 @@
 const AssetsRepository = require('../repositories/AssetsRepository');
+const getTokenPrice = require('../requests/tokens');
 
 class AssetsController {
   async index(request, response) {
     const wallet = await AssetsRepository.findAll();
 
-    response.json(wallet);
+    const assetsWithPrice = await Promise.all(
+      wallet.map(async (asset) => {
+        const token = asset.token_name;
+        const price = await getTokenPrice(token);
+
+        return { ...asset, amount_in_usd: Number(asset.amount) * price[token].usd };
+      }),
+    );
+
+    response.json(assetsWithPrice);
   }
 
   async store(request, response) {
     const {
-      crypto, amount,
+      amount, token_id,
     } = request.body;
 
-    if (!crypto) {
-      return response.status(400).json({ error: 'Crypto is required.' });
+    if (!token_id) {
+      return response.status(400).json({ error: 'Token is required.' });
     }
 
     if (!amount) {
       return response.status(400).json({ error: 'Amount is required.' });
     }
 
-    const assetExists = await AssetsRepository.findByCrypto(crypto);
+    const assetExists = await AssetsRepository.findByTokenId(token_id);
 
     if (assetExists) {
       const asset = await AssetsRepository.update(assetExists.id, {
@@ -30,7 +40,7 @@ class AssetsController {
     }
 
     const asset = await AssetsRepository.create({
-      crypto, amount,
+      token_id, amount,
     });
     response.json(asset);
   }
